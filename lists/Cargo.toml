@@ -1,0 +1,11 @@
+[package]
+name = "lists"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+
+
+[lib]
+name = "your_crate_name"
+path = "src/lib.rs"
