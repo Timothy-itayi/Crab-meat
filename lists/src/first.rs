@@ -1,83 +1,20 @@
 use std::mem;
 
-#[cfg(test)]
-mod test {
-    use super::List;
-    #[test]
-    fn basics(){
-            let mut list = List::new();
-
-            // Check empty list behaves right
-            assert_eq!(list.pop(), None);
-
-            // Populate list
-            list.push(1);
-            list.push(2);
-            list.push(3);
-
-            // Check normal removal
-            assert_eq!(list.pop(), Some(3));
-            assert_eq!(list.pop(), Some(2));
-
-            // Push some more just to make sure nothing's corrupted
-            list.push(4);
-            list.push(5);
-
-            // Check normal removal
-            assert_eq!(list.pop(), Some(5));
-            assert_eq!(list.pop(), Some(4));
-
-            // Check exhaustion
-            assert_eq!(list.pop(), Some(1));
-            assert_eq!(list.pop(), None);
-    }
-}
-
-
-
 
 pub struct List {
     head: Link,
 }
 
-pub trait Drop {
-    fn drop(&mut self);
+
+
+enum Link {
+    Empty,
+    More(Box<Node>),
 }
 
-
-impl Drop for List {
-    fn drop(&mut self) {
-        let mut cur_link = mem::replace(&mut self.head, Link::Empty);
-        // `while let` == "do this thing until this pattern doesn't match"
-        while let Link::More(mut boxed_node) = cur_link {
-            cur_link = mem::replace(&mut boxed_node.next, Link::Empty);
-            // boxed_node goes out of scope and gets dropped here;
-            // but its Node's `next` field has been set to Link::Empty
-            // so no unbounded recursion occurs.
-        }
-    }
-}
-
-
-
-
-impl Drop for Link {
-    fn drop(&mut self) {
-        match *self {
-            Link::Empty => {} // Done!
-            Link::More(ref mut boxed_node) => {
-                drop(boxed_node); // tail recursive - good!
-            }
-        }
-    }
-}
-
-
-
-impl Drop for Node {
-    fn drop(&mut self) {
-        self.next.drop();
-    }
+struct Node {
+    elem: i32,
+    next: Link,
 }
 
 
@@ -111,12 +48,60 @@ impl List {
 
 
 
-enum Link {
-    Empty,
-    More(Box<Node>),
+pub trait Drop {
+    fn drop(&mut self);
 }
 
-struct Node {
-    elem: i32,
-    next: Link,
+
+impl Drop for List {
+    fn drop(&mut self) {
+        let mut cur_link = mem::replace(&mut self.head, Link::Empty);
+        // `while let` == "do this thing until this pattern doesn't match"
+        while let Link::More(mut boxed_node) = cur_link {
+            cur_link = mem::replace(&mut boxed_node.next, Link::Empty);
+            // boxed_node goes out of scope and gets dropped here;
+            // but its Node's `next` field has been set to Link::Empty
+            // so no unbounded recursion occurs.
+        }
+    }
 }
+
+
+
+
+
+
+
+#[cfg(test)]
+mod test {
+    use super::List;
+    #[test]
+    fn basics(){
+            let mut list = List::new();
+
+            // Check empty list behaves right
+            assert_eq!(list.pop(), None);
+
+            // Populate list
+            list.push(1);
+            list.push(2);
+            list.push(3);
+
+            // Check normal removal
+            assert_eq!(list.pop(), Some(3));
+            assert_eq!(list.pop(), Some(2));
+
+            // Push some more just to make sure nothing's corrupted
+            list.push(4);
+            list.push(5);
+
+            // Check normal removal
+            assert_eq!(list.pop(), Some(5));
+            assert_eq!(list.pop(), Some(4));
+
+            // Check exhaustion
+            assert_eq!(list.pop(), Some(1));
+            assert_eq!(list.pop(), None);
+    }
+}
+
